@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Mapped Values Visualization</title>
+    <style>
+        .square {
+            background-color: rgb(0, 0, 0);
+            transition: background-color 0.2s ease;
+        }
+    </style>
+</head>
+
+<body class="square">
+    <div class="square"></div>
+    <audio id="myAudio"></audio>
+    <button id="myButton" onclick="startInterval()"
+        style="width:300px; background-color: rgb(255, 255, 255); text-decoration-color: rgb(255, 0, 0); ">
+        <p style="color: rgb(0, 0, 0);">Start</p>
+    </button>
+
+    <script id="data">
+
+        const square = document.querySelector('.square');
+        const audio = document.getElementById('myAudio');
+        const button = document.getElementById('myButton');
+
+        audio.src = URL.createObjectURL(audioFile);
+
+        let intervalId = null;
+        let currentDataIndex = 0;
+
+        function startInterval() {
+            const currentData = data[currentDataIndex];
+            const intervalDuration = (currentData.end - currentData.start) * 1000;
+            const timeoutDuration = currentData.start * 1000;
+            setTimeout(() => {
+                startColorChange();
+            }, timeoutDuration);
+            audio.currentTime = currentData.start;
+            audio.play();
+            button.disabled = true;
+        }
+
+        function startColorChange() {
+            const currentData = data[currentDataIndex];
+            const currentColor = square.style.backgroundColor;
+            const intensity = currentData.intensity;
+            //const i = 1 - intensity;
+            const nextColor = currentData.color;
+            const nextColorRgb = nextColor.match(/\d+/g).map(Number);
+            const [hue, saturation, lightness] = rgbToHsl(nextColorRgb[0], nextColorRgb[1], nextColorRgb[2]);
+            const [red, green, blue] = this.hslToRgb(hue, saturation + intensity * 100, lightness); // convert HSL to RGB values
+            const newColor = `rgb(${red}, ${green}, ${blue})`;
+            if (currentColor !== newColor) {
+                square.style.backgroundColor = newColor;
+            }
+            setTimeout(() => {
+                currentDataIndex++;
+                if (currentDataIndex >= data.length) {
+                    currentDataIndex = 0;
+                }
+                if (currentDataIndex === 0) {
+                    clearInterval(intervalId);
+                    intervalId = null;
+                    audio.pause();
+                } else {
+                    startColorChange();
+                }
+            }, (currentData.end - currentData.start) * 1000);
+        }
+
+
+        function hslToRgb(h, s, l) {
+            // Convert HSL color values to RGB color values
+            h /= 360;
+            s /= 100;
+            l /= 100;
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l; // achromatic
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1 / 6) return p + (q - p) * 6 * t;
+                    if (t < 1 / 2) return q;
+                    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1 / 3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1 / 3);
+            }
+            return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+        }
+
+        const rgbToHsl = (r, g, b) => {
+            r /= 255;
+            g /= 255;
+            b /= 255;
+            const l = Math.max(r, g, b);
+            const s = l - Math.min(r, g, b);
+            const h = s
+                ? l === r
+                    ? (g - b) / s
+                    : l === g
+                        ? 2 + (b - r) / s
+                        : 4 + (r - g) / s
+                : 0;
+            return [
+                60 * h < 0 ? 60 * h + 360 : 60 * h,
+                100 * (s ? (l <= 0.5 ? s / (2 * l - s) : s / (2 - (2 * l - s))) : 0),
+                (100 * (2 * l - s)) / 2,
+            ];
+        };
+    </script>
+</body>
+
+</html>
